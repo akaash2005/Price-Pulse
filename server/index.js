@@ -8,6 +8,11 @@ import { initializeDatabase } from './database.js';
 import {setupProductRoutes}  from './routes/productRoutes.js';
 import { updateAllProductPrices } from './services/priceService.js';
 
+import { dbHelpers } from './database.js';
+
+dbHelpers.deleteProductsWithLongUrls();
+
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -34,7 +39,7 @@ app.get('*', (req, res) => {
 });
 
 // Cron job: run every 30 minutes
-cron.schedule('*/1 * * * *', async () => {
+cron.schedule('*/30 * * * *', async () => {
   console.log('Running scheduled price update every 30 minutes...');
   try {
     await updateAllProductPrices();
