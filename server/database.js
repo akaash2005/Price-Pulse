@@ -58,7 +58,7 @@ export function initializeDatabase() {
 }
 
 // Clean malformed URLs and their history
-export function deleteProductsWithLongUrls() {
+/*export function deleteProductsWithLongUrls() {
   const db = getDb();
 
   const malformedProducts = db.prepare(`
@@ -83,7 +83,7 @@ export function deleteProductsWithLongUrls() {
 
   deleteHistory(malformedProducts);
   console.log(`${malformedProducts.length} malformed products (and their history) deleted`);
-}
+}*/
 
 // Helper functions
 export const dbHelpers = {

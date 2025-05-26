@@ -8,10 +8,10 @@ import { fileURLToPath } from 'url';
 import {setupProductRoutes}  from './routes/productRoutes.js';
 import { updateAllProductPrices } from './services/priceService.js';
 
-import { initializeDatabase, deleteProductsWithLongUrls } from './database.js';
+import { initializeDatabase, /*deleteProductsWithLongUrls*/ } from './database.js';
 
 initializeDatabase();
-deleteProductsWithLongUrls(); // <--- THIS RUNS THE CLEANUP
+/*deleteProductsWithLongUrls();*/ // <--- THIS RUNS THE CLEANUP
 
 
 const app = express();
