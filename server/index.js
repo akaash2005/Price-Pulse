@@ -1,35 +1,30 @@
 import express from 'express';
 import cors from 'cors';
-import cron from 'node-cron';
-import { initializeDatabase } from './database.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import productRoutes from './routes/productRoutes.js';
-import { updateAllProductPrices } from './services/priceService.js';
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
-// Init DB
-initializeDatabase();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// ✅ Mount the API route at /api/products
+// API routes
 app.use('/api/products', productRoutes);
 
-// ⏰ Scraper every 30 minutes (or change to */1 * * * * for 1 min testing)
-cron.schedule('*/30 * * * *', async () => {
-  console.log('⏰ Running scheduled price update...');
-  try {
-    await updateAllProductPrices();
-    console.log('✅ Price update complete');
-  } catch (error) {
-    console.error('❌ Error updating prices:', error);
-  }
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// Fallback for React Router
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
-// Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
