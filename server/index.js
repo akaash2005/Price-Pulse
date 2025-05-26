@@ -4,7 +4,7 @@ import cors from 'cors';
 import cron from 'node-cron';
 import { fileURLToPath } from 'url';
 
-import { initializeDatabase } from './services/database.js';
+import { initializeDatabase } from './server/database.js';
 import { setupProductRoutes } from './routes/productRoutes.js';
 import { updateAllProductPrices } from './services/priceService.js';
 
