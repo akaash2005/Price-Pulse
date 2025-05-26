@@ -8,10 +8,9 @@ import { fileURLToPath } from 'url';
 import {setupProductRoutes}  from './routes/productRoutes.js';
 import { updateAllProductPrices } from './services/priceService.js';
 
-import { initializeDatabase, /*deleteProductsWithLongUrls*/ } from './database.js';
+import { initializeDatabase } from './database.js';
 
 initializeDatabase();
-/*deleteProductsWithLongUrls();*/ // <--- THIS RUNS THE CLEANUP
 
 
 const app = express();
@@ -39,17 +38,16 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
-// Cron job: run every 30 minutes
-app.get('/api/cron/trigger', async (req, res) => {
+cron.schedule('*/1 * * * *', async () => {
+  console.log('Running scheduled price update every 30 minutes...');
   try {
-    console.log('🔁 External cron triggered price update...');
     await updateAllProductPrices();
-    res.status(200).send('✅ Price update completed via cron.');
-  } catch (err) {
-    console.error('❌ Cron-triggered update failed:', err);
-    res.status(500).send('Error updating prices via cron.');
+    console.log('Price update completed successfully');
+  } catch (error) {
+    console.error('Error updating prices:', error);
   }
 });
+
 
 // Start server
 app.listen(PORT, () => {
