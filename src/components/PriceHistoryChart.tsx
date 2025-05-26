@@ -9,7 +9,7 @@ import {
   Title,
   Tooltip,
   Legend,
-  ChartOptions
+  ChartOptions,
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import { PriceHistory } from '../types';
@@ -36,17 +36,23 @@ const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({ priceHistory }) =
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return (
+      date.toLocaleDateString() +
+      ' ' +
+      date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    );
   };
 
-  const sortedHistory = [...priceHistory].sort((a, b) =>
-    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  const sortedHistory = [...priceHistory].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   );
 
-  const cleanedHistory = sortedHistory.filter(item => item.price > 10 && item.price < 1000000);
+  const cleanedHistory = sortedHistory.filter(
+    (item) => item.price > 10 && item.price < 10000000
+  );
 
-  const labels = cleanedHistory.map(item => formatDate(item.timestamp));
-  const prices = cleanedHistory.map(item => item.price / 100); // ✅ FIX: divide by 100
+  const labels = cleanedHistory.map((item) => formatDate(item.timestamp));
+  const prices = cleanedHistory.map((item) => item.price / 100); // Convert paise → ₹
 
   const chartData = {
     labels,
@@ -57,6 +63,7 @@ const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({ priceHistory }) =
         borderColor: 'rgb(37, 99, 235)',
         backgroundColor: 'rgba(37, 99, 235, 0.5)',
         tension: 0.2,
+        fill: false,
       },
     ],
   };
@@ -67,7 +74,8 @@ const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({ priceHistory }) =
     scales: {
       y: {
         beginAtZero: false,
-        min: 0,
+        min: Math.min(...prices) * 0.95,
+        suggestedMax: Math.max(...prices) * 1.05,
       },
     },
     plugins: {
@@ -85,13 +93,13 @@ const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({ priceHistory }) =
     <div className="w-full h-[400px]">
       <div className="flex justify-end mb-2">
         <button
-          className="px-2 py-1 text-sm border rounded mr-2"
+          className={`px-2 py-1 text-sm border rounded mr-2 ${chartType === 'line' ? 'bg-blue-200' : ''}`}
           onClick={() => setChartType('line')}
         >
           Line
         </button>
         <button
-          className="px-2 py-1 text-sm border rounded"
+          className={`px-2 py-1 text-sm border rounded ${chartType === 'bar' ? 'bg-blue-200' : ''}`}
           onClick={() => setChartType('bar')}
         >
           Bar
