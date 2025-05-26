@@ -5,7 +5,7 @@ import cron from 'node-cron';
 import { fileURLToPath } from 'url';
 
 import { initializeDatabase } from './database.js';
-import setupProductRoutes  from './routes/productRoutes.js';
+import {setupProductRoutes}  from './routes/productRoutes.js';
 import { updateAllProductPrices } from './services/priceService.js';
 
 const app = express();
