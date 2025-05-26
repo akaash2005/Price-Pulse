@@ -21,6 +21,7 @@ export function getDb() {
   if (!db) {
     db = new Database(dbPath);
     db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON'); // Enforce foreign key constraints
   }
   return db;
 }
@@ -29,7 +30,6 @@ export function getDb() {
 export function initializeDatabase() {
   const db = getDb();
 
-  // Create products table
   db.exec(`
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
@@ -44,7 +44,6 @@ export function initializeDatabase() {
     )
   `);
 
-  // Create price_history table
   db.exec(`
     CREATE TABLE IF NOT EXISTS price_history (
       id TEXT PRIMARY KEY,
@@ -58,15 +57,41 @@ export function initializeDatabase() {
   console.log('Database initialized successfully');
 }
 
-// Helper functions for database operations
+// Clean malformed URLs and their history
+export function deleteProductsWithLongUrls() {
+  const db = getDb();
+
+  const malformedProducts = db.prepare(`
+    SELECT id FROM products
+    WHERE url NOT LIKE '%/dp/%'
+      OR instr(url, '?') > 0
+  `).all();
+
+  const deletePriceHistoryStmt = db.prepare(`
+    DELETE FROM price_history WHERE product_id = ?
+  `);
+  const deleteProductStmt = db.prepare(`
+    DELETE FROM products WHERE id = ?
+  `);
+
+  const deleteHistory = db.transaction((products) => {
+    for (const product of products) {
+      deletePriceHistoryStmt.run(product.id);
+      deleteProductStmt.run(product.id);
+    }
+  });
+
+  deleteHistory(malformedProducts);
+  console.log(`${malformedProducts.length} malformed products (and their history) deleted`);
+}
+
+// Helper functions
 export const dbHelpers = {
-  // Products
   createProduct(product) {
     const stmt = getDb().prepare(`
       INSERT INTO products (id, url, title, current_price, image_url, last_checked, created_at, highest_price, lowest_price)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    
     stmt.run(
       product.id,
       product.url,
@@ -78,7 +103,6 @@ export const dbHelpers = {
       product.highestPrice || product.currentPrice,
       product.lowestPrice || product.currentPrice
     );
-    
     return product;
   },
 
@@ -86,7 +110,6 @@ export const dbHelpers = {
     const stmt = getDb().prepare('SELECT * FROM products WHERE id = ?');
     const result = stmt.get(id);
     if (!result) return null;
-
     return {
       id: result.id,
       url: result.url,
@@ -105,7 +128,6 @@ export const dbHelpers = {
     const stmt = getDb().prepare('SELECT * FROM products WHERE url = ?');
     const result = stmt.get(url);
     if (!result) return null;
-
     return {
       id: result.id,
       url: result.url,
@@ -123,7 +145,6 @@ export const dbHelpers = {
   getAllProducts() {
     const stmt = getDb().prepare('SELECT * FROM products ORDER BY last_checked DESC');
     const results = stmt.all();
-
     return results.map(result => ({
       id: result.id,
       url: result.url,
@@ -144,7 +165,6 @@ export const dbHelpers = {
       SET title = ?, current_price = ?, image_url = ?, last_checked = ?, highest_price = ?, lowest_price = ?
       WHERE id = ?
     `);
-
     stmt.run(
       product.title,
       product.currentPrice,
@@ -154,31 +174,28 @@ export const dbHelpers = {
       product.lowestPrice,
       product.id
     );
-
     return product;
   },
 
-  // Price History
   addPriceHistory(priceHistory) {
     const stmt = getDb().prepare(`
       INSERT INTO price_history (id, product_id, price, timestamp)
       VALUES (?, ?, ?, ?)
     `);
-
     stmt.run(
       priceHistory.id,
       priceHistory.productId,
       priceHistory.price,
       priceHistory.timestamp
     );
-
     return priceHistory;
   },
 
   getPriceHistoryByProductId(productId) {
-    const stmt = getDb().prepare('SELECT * FROM price_history WHERE product_id = ? ORDER BY timestamp ASC');
+    const stmt = getDb().prepare(`
+      SELECT * FROM price_history WHERE product_id = ? ORDER BY timestamp ASC
+    `);
     const results = stmt.all(productId);
-
     return results.map(result => ({
       id: result.id,
       productId: result.product_id,
@@ -189,15 +206,11 @@ export const dbHelpers = {
 
   getLatestPriceByProductId(productId) {
     const stmt = getDb().prepare(`
-      SELECT * FROM price_history 
-      WHERE product_id = ? 
-      ORDER BY timestamp DESC 
-      LIMIT 1
+      SELECT * FROM price_history WHERE product_id = ?
+      ORDER BY timestamp DESC LIMIT 1
     `);
-
     const result = stmt.get(productId);
     if (!result) return null;
-
     return {
       id: result.id,
       productId: result.product_id,
@@ -208,26 +221,13 @@ export const dbHelpers = {
 
   calculatePriceChange(productId) {
     const stmt = getDb().prepare(`
-      SELECT price FROM price_history 
-      WHERE product_id = ? 
-      ORDER BY timestamp DESC 
+      SELECT price FROM price_history
+      WHERE product_id = ?
+      ORDER BY timestamp DESC
       LIMIT 2
     `);
-
     const results = stmt.all(productId);
     if (results.length < 2) return null;
-
     return results[0].price - results[1].price;
-  },
-
-  // ✅ Delete malformed/long Amazon product URLs
-  deleteProductsWithLongUrls() {
-    const stmt = getDb().prepare(`
-      DELETE FROM products
-      WHERE url NOT LIKE '%/dp/%'
-        OR instr(url, '?') > 0
-    `);
-    const result = stmt.run();
-    console.log(`${result.changes} malformed products deleted`);
   }
 };
