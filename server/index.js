@@ -8,9 +8,10 @@ import { initializeDatabase } from './database.js';
 import {setupProductRoutes}  from './routes/productRoutes.js';
 import { updateAllProductPrices } from './services/priceService.js';
 
-import { dbHelpers } from './database.js';
+import { initializeDatabase, deleteProductsWithLongUrls } from './database.js';
 
-dbHelpers.deleteProductsWithLongUrls();
+initializeDatabase();
+deleteProductsWithLongUrls(); // <--- THIS RUNS THE CLEANUP
 
 
 const app = express();
