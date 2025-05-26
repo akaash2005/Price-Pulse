@@ -40,13 +40,14 @@ app.get('*', (req, res) => {
 });
 
 // Cron job: run every 30 minutes
-cron.schedule('*/30 * * * *', async () => {
-  console.log('Running scheduled price update every 30 minutes...');
+app.get('/api/cron/trigger', async (req, res) => {
   try {
+    console.log('🔁 External cron triggered price update...');
     await updateAllProductPrices();
-    console.log('Price update completed successfully');
-  } catch (error) {
-    console.error('Error updating prices:', error);
+    res.status(200).send('✅ Price update completed via cron.');
+  } catch (err) {
+    console.error('❌ Cron-triggered update failed:', err);
+    res.status(500).send('Error updating prices via cron.');
   }
 });
 
